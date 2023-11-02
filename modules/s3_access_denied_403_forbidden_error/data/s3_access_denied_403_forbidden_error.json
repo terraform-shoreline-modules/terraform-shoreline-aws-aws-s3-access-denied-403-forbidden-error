@@ -1,0 +1,138 @@
+{
+  "name": "s3_access_denied_403_forbidden_error",
+  "description": "This incident type occurs when a user or role is denied access to an S3 bucket due to HTTP error code 403, which indicates that the user or role does not have the necessary permissions to perform the requested action. This can happen when the user or role tries to access an S3 bucket that they do not have permissions for, or when their credentials have expired or been revoked. This can cause disruption to workflows that rely on data stored in the S3 bucket.",
+  "params": [
+    {
+      "name": "S3_BUCKET_ARN",
+      "value": ""
+    },
+    {
+      "name": "BUCKET_NAME",
+      "value": ""
+    },
+    {
+      "name": "USER_NAME",
+      "value": ""
+    },
+    {
+      "name": "USER_OR_ROLE_ARN",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## S3 Access Denied (403 Forbidden) Error.\nThis incident type occurs when a user or role is denied access to an S3 bucket due to HTTP error code 403, which indicates that the user or role does not have the necessary permissions to perform the requested action. This can happen when the user or role tries to access an S3 bucket that they do not have permissions for, or when their credentials have expired or been revoked. This can cause disruption to workflows that rely on data stored in the S3 bucket."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## List all S3 buckets"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws s3 ls`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if the region is correct"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws s3api get-bucket-location --bucket ${BUCKET_NAME}`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the bucket policy"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws s3api get-bucket-policy --bucket ${BUCKET_NAME}`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if the user's credentials are valid"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws sts get-caller-identity`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if the user has the required permissions"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws s3api list-objects --bucket ${BUCKET_NAME} --query 'Contents[].{Key: Key, Size: Size}'`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if the user has the correct IAM permissions"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws iam list-attached-user-policies --user-name ${USER_NAME}`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the IAM user or role that is being used to access the S3 bucket to verify that it has the necessary permissions."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_check_s3_permission($S3_BUCKET_ARN, $USER_OR_ROLE_ARN)"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Create a policy for s3FullAccess and attach to user or role"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_s3_policy_script($S3_BUCKET_ARN, $USER_OR_ROLE_ARN)"
+    }
+  ]
+}
